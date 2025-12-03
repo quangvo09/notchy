@@ -13,16 +13,17 @@ struct DynamicIslandView: View {
     @State private var isExpanded = false
     @State private var isVisible = true
     @State private var hoverDebounceTimer: Timer?
+    @State private var isAnimating = false
 
     // Animation parameters (tuned to match iPhone)
     let springResponse: Double = 0.4
     let springDamping: Double = 0.75
 
-    // Dimensions
-    let collapsedWidth: CGFloat = 120
-    let collapsedHeight: CGFloat = 35
+    // Dimensions (matched to actual MacBook Pro notch: ~200×30pt)
+    let collapsedWidth: CGFloat = 184
+    let collapsedHeight: CGFloat = 30
     let expandedWidth: CGFloat = 320
-    let expandedHeight: CGFloat = 100
+    let expandedHeight: CGFloat = 180
 
     var body: some View {
         HoverableView(
@@ -38,11 +39,11 @@ struct DynamicIslandView: View {
 
     var islandContent: some View {
         ZStack {
-            // Background with blur effect
-            RoundedRectangle(cornerRadius: isExpanded ? 25 : 17.5, style: .continuous)
-                .fill(.black.opacity(0.85))
+            // Background - pure black to match notch
+            RoundedRectangle(cornerRadius: isExpanded ? 25 : 15, style: .continuous)
+                .fill(.black)
                 .overlay(
-                    RoundedRectangle(cornerRadius: isExpanded ? 25 : 17.5, style: .continuous)
+                    RoundedRectangle(cornerRadius: isExpanded ? 25 : 15, style: .continuous)
                         .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
                 .shadow(color: .black.opacity(0.3), radius: isExpanded ? 20 : 10, x: 0, y: 5)
@@ -167,25 +168,48 @@ struct DynamicIslandView: View {
     // MARK: - Hover Handling
 
     private func handleMouseEnter() {
+        // Prevent re-entrant calls and skip if already expanded
+        guard !isExpanded && !isAnimating else { return }
+
         // Cancel any pending collapse
         hoverDebounceTimer?.invalidate()
+
+        print("🖱️ Mouse entered - expanding")
+        isAnimating = true
 
         // Expand immediately
         withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
             isExpanded = true
         }
 
-        print("🖱️ Mouse entered - expanding")
+        // Reset animation flag after animation completes
+        DispatchQueue.main.asyncAfter(deadline: .now() + springResponse) {
+            isAnimating = false
+        }
     }
 
     private func handleMouseExit() {
+        // Skip if already collapsed or animating
+        guard isExpanded && !isAnimating else { return }
+
+        print("🖱️ Mouse exiting - will collapse in 300ms")
+
         // Debounce the collapse (delay by 300ms)
         hoverDebounceTimer?.invalidate()
-        hoverDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { _ in
+        hoverDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [self] _ in
+            guard isExpanded && !isAnimating else { return }
+
+            print("🖱️ Collapsing now")
+            isAnimating = true
+
             withAnimation(.spring(response: springResponse, dampingFraction: springDamping)) {
                 isExpanded = false
             }
-            print("🖱️ Mouse exited - collapsing")
+
+            // Reset animation flag after animation completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + springResponse) {
+                isAnimating = false
+            }
         }
     }
 }

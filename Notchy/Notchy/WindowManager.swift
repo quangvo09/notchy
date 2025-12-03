@@ -13,9 +13,9 @@ class WindowManager: ObservableObject {
 
     var islandWindow: NSWindow?
 
-    // Island dimensions
-    let collapsedWidth: CGFloat = 120
-    let collapsedHeight: CGFloat = 35
+    // Island dimensions (matched to actual MacBook Pro notch: ~200×30pt)
+    let collapsedWidth: CGFloat = 184
+    let collapsedHeight: CGFloat = 30
 
     private init() {}
 
@@ -25,25 +25,11 @@ class WindowManager: ObservableObject {
             return
         }
 
-        // Detect notch
-        let hasNotch = screen.safeAreaInsets.top > 0
-        let notchHeight = screen.safeAreaInsets.top
-        let menuBarHeight: CGFloat = 24
-
         print("🖥️  Screen: \(screen.frame.width)x\(screen.frame.height)")
-        print("🔍 Notch detected: \(hasNotch), Height: \(notchHeight)")
 
-        // Calculate initial position (centered horizontally, just below menu bar/notch)
+        // Calculate initial position (centered horizontally, at the very top)
         let xPos = (screen.frame.width / 2) - (collapsedWidth / 2)
-        let yPos: CGFloat
-
-        if hasNotch {
-            // Position just below the notch
-            yPos = screen.frame.height - notchHeight - 5
-        } else {
-            // Position below menu bar for non-notched Macs
-            yPos = screen.frame.height - menuBarHeight - 10
-        }
+        let yPos = screen.frame.height - collapsedHeight  // Position at absolute top (y=0 relative to top)
 
         // Create borderless window
         islandWindow = NSWindow(
@@ -77,18 +63,8 @@ class WindowManager: ObservableObject {
     func repositionIsland() {
         guard let screen = NSScreen.main, let window = islandWindow else { return }
 
-        let hasNotch = screen.safeAreaInsets.top > 0
-        let notchHeight = screen.safeAreaInsets.top
-        let menuBarHeight: CGFloat = 24
-
         let xPos = (screen.frame.width / 2) - (window.frame.width / 2)
-        let yPos: CGFloat
-
-        if hasNotch {
-            yPos = screen.frame.height - notchHeight - 5
-        } else {
-            yPos = screen.frame.height - menuBarHeight - 10
-        }
+        let yPos = screen.frame.height - window.frame.height  // Always at the very top
 
         window.setFrameOrigin(NSPoint(x: xPos, y: yPos))
 
@@ -98,18 +74,8 @@ class WindowManager: ObservableObject {
     func updateWindowSize(width: CGFloat, height: CGFloat, animated: Bool = true) {
         guard let window = islandWindow, let screen = NSScreen.main else { return }
 
-        let hasNotch = screen.safeAreaInsets.top > 0
-        let notchHeight = screen.safeAreaInsets.top
-        let menuBarHeight: CGFloat = 24
-
         let xPos = (screen.frame.width / 2) - (width / 2)
-        let yPos: CGFloat
-
-        if hasNotch {
-            yPos = screen.frame.height - notchHeight - 5
-        } else {
-            yPos = screen.frame.height - menuBarHeight - 10
-        }
+        let yPos = screen.frame.height - height  // Always at the very top
 
         let newFrame = NSRect(x: xPos, y: yPos, width: width, height: height)
 

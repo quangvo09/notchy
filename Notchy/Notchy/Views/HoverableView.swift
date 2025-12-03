@@ -44,6 +44,7 @@ class HoverDetectorView: NSView {
     var onEnter: (() -> Void)?
     var onExit: (() -> Void)?
     private var trackingArea: NSTrackingArea?
+    private var isMouseInside = false
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -68,15 +69,36 @@ class HoverDetectorView: NSView {
         if let area = trackingArea {
             addTrackingArea(area)
         }
+
+        // Check if mouse is currently inside after updating
+        if let window = self.window {
+            let mouseLocation = window.mouseLocationOutsideOfEventStream
+            let localPoint = convert(mouseLocation, from: nil)
+            let isInside = bounds.contains(localPoint)
+
+            if isInside && !isMouseInside {
+                isMouseInside = true
+                onEnter?()
+            } else if !isInside && isMouseInside {
+                isMouseInside = false
+                onExit?()
+            }
+        }
     }
 
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
+        guard !isMouseInside else { return }
+        isMouseInside = true
+        print("🔵 Mouse ENTERED tracking area")
         onEnter?()
     }
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
+        guard isMouseInside else { return }
+        isMouseInside = false
+        print("🔴 Mouse EXITED tracking area")
         onExit?()
     }
 }
