@@ -150,6 +150,21 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
             let performer = NSHapticFeedbackManager.defaultPerformer
             performer.perform(.alignment, performanceTime: .default)
         }
+
+        // CUSTOM: Auto expand/compact on hover
+        Task { @MainActor in
+            if hovering && state == .compact {
+                print("🖱️ Hover detected - auto expanding...")
+                await expand()
+            } else if !hovering && state == .expanded {
+                // Delay before compacting to avoid flickering
+                try? await Task.sleep(for: .milliseconds(500))
+                if !isHovering && state == .expanded {
+                    print("🖱️ Hover ended - auto compacting...")
+                    await compact()
+                }
+            }
+        }
     }
 }
 
