@@ -1,0 +1,62 @@
+[
+  {
+    "name": "GitHub",
+    "url": "https://github.com",
+    "category": "development"
+  },
+  {
+    "name": "Stack Overflow",
+    "url": "https://stackoverflow.com",
+    "category": "development"
+  },
+  {
+    "name": "Apple Developer",
+    "url": "https://developer.apple.com",
+    "category": "development"
+  },
+  {
+    "name": "SwiftUI Documentation",
+    "url": "https://developer.apple.com/documentation/swiftui",
+    "category": "development"
+  },
+  {
+    "name": "Figma",
+    "url": "https://figma.com",
+    "category": "design"
+  },
+  {
+    "name": "Notion",
+    "url": "https://notion.so",
+    "category": "productivity"
+  },
+  {
+    "name": "Linear",
+    "url": "https://linear.app",
+    "category": "productivity"
+  },
+  {
+    "name": "Vercel Dashboard",
+    "url": "https://vercel.com/dashboard",
+    "category": "development"
+  },
+  {
+    "name": "Hacker News",
+    "url": "https://news.ycombinator.com",
+    "category": "news"
+  },
+  {
+    "name": "Swift Package Index",
+    "url": "https://swiftpackageindex.com",
+    "category": "development"
+  },
+  {
+    "name": "Ray Wenderlich",
+    "url": "https://www.raywenderlich.com",
+    "category": "learning"
+  },
+  {
+    "name": "Swift by Sundell",
+    "url": "https://www.swiftbysundell.com",
+    "category": "learning"
+  }
+]
