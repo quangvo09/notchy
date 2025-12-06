@@ -9,7 +9,7 @@ class LoginMonitor {
     private let lastShownTimestampKey = "LoginMonitor.lastShownTimestamp"
 
     // Cooldown period: don't show more than once every 4 hours
-    private let cooldownPeriod: TimeInterval = 1  // 4 hours in seconds
+    private let cooldownPeriod: TimeInterval = 4 * 60 * 60 // 4 hours in seconds
 
     init() {
         print("👋 LoginMonitor: Initialized")
