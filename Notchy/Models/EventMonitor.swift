@@ -14,7 +14,7 @@ class EventMonitor: ObservableObject {
     var onEventPosted: (() -> Void)?
 
     /// Callback when event is dismissed (notch should compact)
-    var onEventDismissed: (() -> Void)?
+    var onEventDismissed: (() async -> Void)?
 
     private var dismissTasks: [UUID: Task<Void, Never>] = [:]
 
@@ -58,17 +58,27 @@ class EventMonitor: ObservableObject {
         dismissTasks[id]?.cancel()
         dismissTasks.removeValue(forKey: id)
 
-        // Remove from active events
-        if let index = activeEvents.firstIndex(where: { $0.id == id }) {
-            let event = activeEvents[index]
-            print("❌ EventMonitor: Dismissed '\(event.title)'")
-            activeEvents.remove(at: index)
+        // Find the event to dismiss
+        guard let index = activeEvents.firstIndex(where: { $0.id == id }) else {
+            return
+        }
 
-            // If no more events, trigger compact callback
-            if activeEvents.isEmpty {
-                print("🔽 EventMonitor: No more events, triggering compact")
-                onEventDismissed?()
+        let event = activeEvents[index]
+
+        // If this is the last event, we need to compact first, then remove
+        if activeEvents.count == 1 {
+            print("🔽 EventMonitor: Last event '\(event.title)', compacting before removal")
+
+            // Call compact callback and wait for it to complete
+            Task { @MainActor in
+                await onEventDismissed?()
+                print("❌ EventMonitor: Removing '\(event.title)' after compact")
+                activeEvents.remove(at: index)
             }
+        } else {
+            // If there are other events, remove immediately
+            print("❌ EventMonitor: Dismissed '\(event.title)' (other events remain)")
+            activeEvents.remove(at: index)
         }
     }
 
@@ -87,7 +97,9 @@ class EventMonitor: ObservableObject {
         // Trigger compact callback if we had events
         if hadEvents {
             print("🔽 EventMonitor: All events dismissed, triggering compact")
-            onEventDismissed?()
+            Task { @MainActor in
+                await onEventDismissed?()
+            }
         }
     }
 

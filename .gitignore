@@ -1,1 +1,6 @@
-.build
+.build# Xcode user data
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+*.xcuserstate
+# Xcode build
+.build/
+/derived-data/

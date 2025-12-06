@@ -9,7 +9,7 @@ class LoginMonitor {
     private let lastShownTimestampKey = "LoginMonitor.lastShownTimestamp"
 
     // Cooldown period: don't show more than once every 4 hours
-    private let cooldownPeriod: TimeInterval = 4 * 60 * 60  // 4 hours in seconds
+    private let cooldownPeriod: TimeInterval = 1  // 4 hours in seconds
 
     init() {
         print("👋 LoginMonitor: Initialized")
@@ -37,6 +37,26 @@ class LoginMonitor {
             queue: .main
         ) { [weak self] _ in
             print("👋 LoginMonitor: Screen unlocked / session active")
+            Task { @MainActor in
+                self?.checkLoginEvent()
+            }
+        }
+
+        // Also listen for screen lock/unlock events from DistributedNotificationCenter
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.apple.screenIsLocked"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("👋 LoginMonitor: Screen locked")
+        }
+
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.apple.screenIsUnlocked"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("👋 LoginMonitor: Screen unlocked (DNC)")
             Task { @MainActor in
                 self?.checkLoginEvent()
             }
@@ -77,7 +97,7 @@ class LoginMonitor {
         print("👋 LoginMonitor: First launch: \(isFirstLaunch), First today: \(isFirstShowToday), Cooldown expired: \(isCooldownExpired)")
 
         // Show welcome on first launch ever, first show of the day, or after cooldown
-        if isFirstLaunch || (isFirstShowToday && isCooldownExpired) {
+        if isFirstLaunch || isFirstShowToday || isCooldownExpired {
             print("👋 LoginMonitor: Posting welcome event")
 
             // Mark as shown
@@ -121,6 +141,7 @@ class LoginMonitor {
 
     deinit {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+        DistributedNotificationCenter.default().removeObserver(self)
         print("👋 LoginMonitor: Cleaned up notifications")
     }
 }

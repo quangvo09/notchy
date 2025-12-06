@@ -52,9 +52,12 @@ class NotchManager: ObservableObject {
 
         // Setup auto-compact on event dismissal
         eventMonitor.onEventDismissed = { [weak self] in
-            Task { @MainActor in
-                print("🔽 NotchManager: Event dismissed, auto-compacting notch")
-                await self?.dynamicNotch?.compact()
+            await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    print("🔽 NotchManager: Event dismissed, auto-compacting notch")
+                    await self?.dynamicNotch?.compact()
+                    continuation.resume()
+                }
             }
         }
 
