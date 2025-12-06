@@ -3,7 +3,14 @@ import SwiftUI
 @MainActor
 class NotchManager: ObservableObject {
     @Published var dynamicNotch: DynamicNotch<AnyView, AnyView, AnyView>?
+
     let monitor = ForegroundAppMonitor.shared
+    let orchestrator = NotchContentOrchestrator()
+    let eventMonitor = EventMonitor.shared
+
+    // Event monitors
+    private var cpuMonitor: CPUMonitor?
+    private var loginMonitor: LoginMonitor?
 
     func showNotch() async {
         print("🚀 NotchManager: Creating DynamicNotch")
@@ -14,6 +21,7 @@ class NotchManager: ObservableObject {
                 AnyView(
                     ExpandedContentView()
                         .environmentObject(self.monitor)
+                        .environmentObject(self.orchestrator)
                 )
             },
             compactLeading: {
@@ -26,5 +34,40 @@ class NotchManager: ObservableObject {
 
         await dynamicNotch?.compact()
         print("✅ Ready! Hover automatically expands the notch")
+
+        // Setup event monitoring
+        setupEventMonitoring()
     }
+
+    private func setupEventMonitoring() {
+        print("🔧 NotchManager: Setting up event monitoring")
+
+        // Setup auto-expand on event
+        eventMonitor.onEventPosted = { [weak self] in
+            Task { @MainActor in
+                print("🎯 NotchManager: Event posted, auto-expanding notch")
+                await self?.dynamicNotch?.expand()
+            }
+        }
+
+        // Setup auto-compact on event dismissal
+        eventMonitor.onEventDismissed = { [weak self] in
+            Task { @MainActor in
+                print("🔽 NotchManager: Event dismissed, auto-compacting notch")
+                await self?.dynamicNotch?.compact()
+            }
+        }
+
+        // Start CPU monitoring
+        cpuMonitor = CPUMonitor(threshold: 1.0, checkInterval: 30.0)
+        cpuMonitor?.startMonitoring()
+
+        // Check for welcome message
+        loginMonitor = LoginMonitor()
+        loginMonitor?.checkLoginEvent()
+
+        print("✅ NotchManager: Event monitoring active")
+    }
+
+    // Note: Monitors will be cleaned up automatically when deinited
 }

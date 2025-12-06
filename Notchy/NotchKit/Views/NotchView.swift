@@ -142,13 +142,13 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         HStack(spacing: 0) {
             if dynamicNotch.state == .expanded {
                 dynamicNotch.expandedContent
-                    .transition(.blur(intensity: 10).combined(with: .scale(y: 0.6, anchor: .top)).combined(with: .opacity))
+                    .transition(.opacity)
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: dynamicNotch.notchSize.height) }
-        .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: safeAreaInset) }
-        .safeAreaInset(edge: .leading, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
-        .safeAreaInset(edge: .trailing, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
+        .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 0) }
+        .safeAreaInset(edge: .leading, spacing: 0) { Color.clear.frame(width: 0) }
+        .safeAreaInset(edge: .trailing, spacing: 0) { Color.clear.frame(width: 0) }
         .frame(minWidth: dynamicNotch.notchSize.width)
     }
 }

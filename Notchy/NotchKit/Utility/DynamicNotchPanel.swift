@@ -29,4 +29,11 @@ final class DynamicNotchPanel: NSPanel {
     override var canBecomeKey: Bool {
         true
     }
+
+    /// Updates the panel's background color
+    func updateBackgroundColor(_ color: NSColor) {
+        self.backgroundColor = color
+        self.invalidateShadow()
+        self.display()
+    }
 }

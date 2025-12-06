@@ -360,3 +360,14 @@ private extension DynamicNotch {
         self.windowController = nil
     }
 }
+
+// MARK: - Background Color Management
+
+extension DynamicNotch {
+    /// Updates the notch window's background color
+    /// - Parameter color: The NSColor to set as the background
+    public func setBackgroundColor(_ color: NSColor) {
+        guard let panel = windowController?.window as? DynamicNotchPanel else { return }
+        panel.updateBackgroundColor(color)
+    }
+}
