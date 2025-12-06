@@ -59,7 +59,7 @@ class NotchManager: ObservableObject {
         }
 
         // Start CPU monitoring
-        cpuMonitor = CPUMonitor(threshold: 1.0, checkInterval: 30.0)
+        cpuMonitor = CPUMonitor(threshold: 80.0, checkInterval: 30.0)
         cpuMonitor?.startMonitoring()
 
         // Check for welcome message
