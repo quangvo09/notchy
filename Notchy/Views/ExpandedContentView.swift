@@ -56,9 +56,9 @@ struct ExpandedContentView: View {
         // } else if monitor.isTerminal() {
         //     TerminalContextView()
         // } else {
-        //     SimpleContentView()
+        //     DefaultContentView()
         // }
-        SimpleContentView()
+        DefaultContentView()
     }
 
     private var dismissButton: some View {
