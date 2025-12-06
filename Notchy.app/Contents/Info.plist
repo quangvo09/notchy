@@ -5,7 +5,7 @@
     <key>CFBundleExecutable</key>
     <string>Notchy</string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourcompany.notchy</string>
+    <string>com.notchyapp.notchy</string>
     <key>CFBundleName</key>
     <string>Notchy</string>
     <key>CFBundleVersion</key>
@@ -14,11 +14,7 @@
     <string>1.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
     <key>LSUIElement</key>
-    <true/>
-    <key>NSHighResolutionCapable</key>
     <true/>
 </dict>
 </plist>

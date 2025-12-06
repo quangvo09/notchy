@@ -49,15 +49,16 @@ struct ExpandedContentView: View {
 
     @ViewBuilder
     private func contextView() -> some View {
-        if monitor.isDevelopmentEnvironment() {
-            DevToolsContextView()
-        } else if monitor.isBrowser() {
-            BookmarksContextView()
-        } else if monitor.isTerminal() {
-            TerminalContextView()
-        } else {
-            JumpRopeCPUView()
-        }
+        // if monitor.isDevelopmentEnvironment() {
+        //     DevToolsContextView()
+        // } else if monitor.isBrowser() {
+        //     BookmarksContextView()
+        // } else if monitor.isTerminal() {
+        //     TerminalContextView()
+        // } else {
+        //     SimpleContentView()
+        // }
+        SimpleContentView()
     }
 
     private var dismissButton: some View {
