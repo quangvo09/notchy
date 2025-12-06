@@ -106,6 +106,7 @@ class LoginMonitor {
 
             // Post welcome event after a short delay (let app fully launch)
             Task {
+                try? await Task.sleep(for: .seconds(2))
                 EventMonitor.shared.postEvent(WelcomeEvent())
             }
         } else {
