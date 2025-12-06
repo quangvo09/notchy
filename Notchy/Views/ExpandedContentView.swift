@@ -18,11 +18,11 @@ struct ExpandedContentView: View {
         .padding(.horizontal, 30)
         .padding(.vertical, 24)
         .frame(maxWidth: 420, maxHeight: 120)
-        .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 30))
+        .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 20))
         .overlay(
-            RoundedRectangle(cornerRadius: 30)
+            RoundedRectangle(cornerRadius: 20)
                 .strokeBorder(.quaternary.opacity(0.5), lineWidth: 0.6)
         )
-        .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
+        .shadow(color: .black.opacity(0.25), radius: 10, y: 8)
     }
 }
