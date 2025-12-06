@@ -65,8 +65,8 @@ struct CPUAlertView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 15)
+            .padding(.top, 15)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .edgesIgnoringSafeArea(.all)
@@ -104,7 +104,7 @@ struct CPUAlertView: View {
 
 #Preview {
     CPUAlertView(usage: 85.5)
-        .frame(width: 420, height: 120)
+        .frame(width: 420, height: 100)
         .padding()
         .background(.ultraThickMaterial)
         .cornerRadius(20)
