@@ -9,13 +9,7 @@ class LoginMonitor {
     private let lastShownTimestampKey = "LoginMonitor.lastShownTimestamp"
 
     // Cooldown period: don't show more than once every configured interval
-    #if DEBUG
-    // Debug: no cooldown to simplify testing
     private let cooldownPeriod: TimeInterval = 0
-    #else
-    // Release: don't show more than once every 1 hour
-    private let cooldownPeriod: TimeInterval = 1 * 60 * 60 // 1 hour in seconds
-    #endif
 
     init() {
         print("👋 LoginMonitor: Initialized")
@@ -112,14 +106,8 @@ class LoginMonitor {
 
             // Post welcome event after a short delay (let app fully launch)
             Task {
-                #if DEBUG
-                // In debug, fire immediately for easier testing
+                // try? await Task.sleep(for: .seconds(1))
                 EventMonitor.shared.postEvent(WelcomeEvent())
-                #else
-                // In release, wait briefly so the app is fully launched
-                try? await Task.sleep(for: .seconds(1))
-                EventMonitor.shared.postEvent(WelcomeEvent())
-                #endif
             }
         } else {
             if !isCooldownExpired, let lastShown = lastShownTimestamp {
