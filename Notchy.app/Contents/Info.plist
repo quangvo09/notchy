@@ -16,5 +16,9 @@
     <string>APPL</string>
     <key>LSUIElement</key>
     <true/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Notchy uses Bluetooth to detect when AirPods are connected and read battery levels</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>Notchy uses Bluetooth to monitor AirPod connection status and battery information</string>
 </dict>
 </plist>

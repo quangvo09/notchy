@@ -32,6 +32,15 @@ struct DevToolsContextView: View {
                     color: .red,
                     script: "pkill -f \"node\\|npm\\|yarn\" || true"
                 )
+
+                ToolButton(
+                    title: "Test AirPods",
+                    icon: "airpods",
+                    color: .blue,
+                    action: {
+                        AirPodConnectionMonitor.shared.simulateAirPodConnection()
+                    }
+                )
             }
         }
     }
