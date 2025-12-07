@@ -69,7 +69,7 @@ struct WelcomeEvent: NotchEvent {
     }
 
     let autoDismiss = true
-    let dismissAfter: TimeInterval? = 5.0
+    let dismissAfter: TimeInterval? = 1.5
 
     func makeView() -> AnyView {
         AnyView(WelcomeView(event: self))

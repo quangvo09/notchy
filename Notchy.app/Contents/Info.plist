@@ -8,6 +8,8 @@
     <string>com.notchyapp.notchy</string>
     <key>CFBundleName</key>
     <string>Notchy</string>
+    <key>CFBundleDisplayName</key>
+    <string>Notchy</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>CFBundleShortVersionString</key>
@@ -16,5 +18,15 @@
     <string>APPL</string>
     <key>LSUIElement</key>
     <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Notchy needs Bluetooth access to monitor AirPods connection and battery status.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>Notchy uses Bluetooth to display AirPods battery information in the notch.</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
 </dict>
 </plist>

@@ -8,8 +8,8 @@ class LoginMonitor {
     private let hasShownWelcomeKey = "LoginMonitor.hasShownWelcome"
     private let lastShownTimestampKey = "LoginMonitor.lastShownTimestamp"
 
-    // Cooldown period: don't show more than once every 1 hours
-    private let cooldownPeriod: TimeInterval = 1 * 60 * 60 // 1 hours in seconds
+    // Cooldown period: don't show more than once every configured interval
+    private let cooldownPeriod: TimeInterval = 0
 
     init() {
         print("👋 LoginMonitor: Initialized")
@@ -106,7 +106,7 @@ class LoginMonitor {
 
             // Post welcome event after a short delay (let app fully launch)
             Task {
-                try? await Task.sleep(for: .seconds(2))
+                // try? await Task.sleep(for: .seconds(1))
                 EventMonitor.shared.postEvent(WelcomeEvent())
             }
         } else {

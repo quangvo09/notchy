@@ -32,6 +32,24 @@ struct DevToolsContextView: View {
                     color: .red,
                     script: "pkill -f \"node\\|npm\\|yarn\" || true"
                 )
+
+                ToolButton(
+                    title: "Test AirPods",
+                    icon: "airpods",
+                    color: .blue,
+                    action: {
+                        AirPodConnectionMonitor.shared.simulateAirPodConnection()
+                    }
+                )
+
+                ToolButton(
+                    title: "Set AirPod Data",
+                    icon: "battery.100",
+                    color: .green,
+                    action: {
+                        AirPodsBatteryMonitor.shared.setTestData(left: 85, right: 78, caseBattery: 45, deviceName: "AirPods Pro")
+                    }
+                )
             }
         }
     }

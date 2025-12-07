@@ -11,6 +11,7 @@ class NotchManager: ObservableObject {
     // Event monitors
     private var cpuMonitor: CPUMonitor?
     private var loginMonitor: LoginMonitor?
+    private var airPodMonitor: AirPodConnectionMonitor?
 
     func showNotch() async {
         print("🚀 NotchManager: Creating DynamicNotch")
@@ -68,6 +69,9 @@ class NotchManager: ObservableObject {
         // Check for welcome message
         loginMonitor = LoginMonitor()
         loginMonitor?.checkLoginEvent()
+
+        // Start AirPod connection monitoring
+        airPodMonitor = AirPodConnectionMonitor.shared
 
         print("✅ NotchManager: Event monitoring active")
     }
