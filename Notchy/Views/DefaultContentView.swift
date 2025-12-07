@@ -150,7 +150,7 @@ struct DefaultContentView: View {
         }
     }
 
-    // Dynamic color based on time of day
+    // Dynamic color based on time of day (consistent with Welcome view)
     private var timeOfDayColor: Color {
         let hour = Calendar.current.component(.hour, from: currentTime)
         switch hour {
@@ -172,6 +172,25 @@ struct DefaultContentView: View {
         default:
             // Late night - dark purple
             return .purple
+        }
+    }
+
+    // Icon gradient colors based on time of day (consistent with Welcome view)
+    private var iconGradientColors: [Color] {
+        let hour = Calendar.current.component(.hour, from: currentTime)
+        switch hour {
+        case 5..<8:   // Early morning - orange/pink sunrise
+            return [.orange, .pink]
+        case 8..<12:  // Late morning - yellow
+            return [.yellow, .orange]
+        case 12..<17: // Afternoon - blue
+            return [.blue, .cyan]
+        case 17..<20: // Evening - purple/blue
+            return [.purple, .blue]
+        case 20..<23: // Night - deep blue
+            return [.indigo, .blue]
+        default:      // Late night - dark purple
+            return [.purple, .indigo]
         }
     }
 
@@ -204,14 +223,52 @@ struct DefaultContentView: View {
 struct AirPodBatteryInfoView: View {
     @ObservedObject var batteryMonitor: AirPodsBatteryMonitor
 
+    // Dynamic color based on time of day (consistent with Welcome and Default views)
+    private var timeOfDayColor: Color {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<8:
+            // Early morning - orange/pink sunrise
+            return .orange
+        case 8..<12:
+            // Late morning - yellow
+            return .yellow
+        case 12..<17:
+            // Afternoon - blue
+            return .blue
+        case 17..<20:
+            // Evening - purple/blue
+            return .purple
+        case 20..<23:
+            // Night - deep blue
+            return .indigo
+        default:
+            // Late night - dark purple
+            return .purple
+        }
+    }
+
     var body: some View {
         HStack(spacing: 16) {
-            // AirPods average battery
+            // AirPods average battery with gradient background
             if let avgBattery = batteryMonitor.getAverageBattery() {
                 HStack(spacing: 6) {
-                    Image(systemName: "airpodspro")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: getTimeOfDayGradient(),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 20, height: 20)
+                            .shadow(color: timeOfDayColor.opacity(0.4), radius: 3, x: 0, y: 1)
+
+                        Image(systemName: "airpodspro")
+                            .font(.caption2)
+                            .foregroundStyle(.white)
+                    }
 
                     Text("\(Int(avgBattery * 100))%")
                         .font(.caption)
@@ -232,12 +289,31 @@ struct AirPodBatteryInfoView: View {
                 }
             }
 
-            // Charging indicator
+            // Charging indicator with consistent color
             if batteryMonitor.isChargingLeft || batteryMonitor.isChargingRight || batteryMonitor.isChargingCase {
                 Image(systemName: "bolt.fill")
                     .font(.caption2)
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(timeOfDayColor.opacity(0.8))
             }
+        }
+    }
+
+    // Get gradient colors based on time of day
+    private func getTimeOfDayGradient() -> [Color] {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<8:   // Early morning - orange/pink sunrise
+            return [.orange, .pink]
+        case 8..<12:  // Late morning - yellow
+            return [.yellow, .orange]
+        case 12..<17: // Afternoon - blue
+            return [.blue, .cyan]
+        case 17..<20: // Evening - purple/blue
+            return [.purple, .blue]
+        case 20..<23: // Night - deep blue
+            return [.indigo, .blue]
+        default:      // Late night - dark purple
+            return [.purple, .indigo]
         }
     }
 }

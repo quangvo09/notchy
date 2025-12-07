@@ -78,38 +78,46 @@ struct WelcomeView: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: 100)
+                .frame(height: 120)
             }
         }
     }
 
-    // Icon gradient colors based on time of day
+    // Icon gradient colors based on time of day (consistent with Default view)
     private var iconGradientColors: [Color] {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12:  // Morning - golden yellow
-            return [.orange, .yellow]
-        case 12..<17: // Afternoon - bright blue
+        case 5..<8:   // Early morning - orange/pink sunrise
+            return [.orange, .pink]
+        case 8..<12:  // Late morning - yellow
+            return [.yellow, .orange]
+        case 12..<17: // Afternoon - blue
             return [.blue, .cyan]
-        case 17..<22: // Evening - purple/pink
-            return [.purple, .pink]
-        default:      // Night - dark blue
+        case 17..<20: // Evening - purple/blue
+            return [.purple, .blue]
+        case 20..<23: // Night - deep blue
             return [.indigo, .blue]
+        default:      // Late night - dark purple
+            return [.purple, .indigo]
         }
     }
 
-    // Background accent color for subtle gradient (based on time of day)
+    // Background accent color for subtle gradient (based on time of day, consistent with Default view)
     private var backgroundAccentColor: Color {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12:  // Morning - golden accent
-            return Color(red: 0.8, green: 0.5, blue: 0.1)
+        case 5..<8:   // Early morning - orange/pink accent
+            return .orange
+        case 8..<12:  // Late morning - yellow accent
+            return .yellow
         case 12..<17: // Afternoon - blue accent
-            return Color(red: 0.1, green: 0.4, blue: 0.7)
-        case 17..<22: // Evening - purple accent
-            return Color(red: 0.5, green: 0.2, blue: 0.7)
-        default:      // Night - deep blue accent
-            return Color(red: 0.1, green: 0.1, blue: 0.4)
+            return .blue
+        case 17..<20: // Evening - purple accent
+            return .purple
+        case 20..<23: // Night - deep blue accent
+            return .indigo
+        default:      // Late night - dark purple accent
+            return .purple
         }
     }
 
