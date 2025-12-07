@@ -4,6 +4,35 @@ import CoreBluetooth
 import AudioToolbox
 import IOKit.audio
 
+// MARK: - Audio Callbacks
+
+// Static C callback functions for CoreAudio property listeners
+internal func audioDeviceChangeCallback(
+    objectID: AudioObjectID,
+    numAddresses: UInt32,
+    addresses: UnsafePointer<AudioObjectPropertyAddress>,
+    clientData: UnsafeMutableRawPointer?
+) -> OSStatus {
+    DispatchQueue.main.async {
+        let monitor = Unmanaged<AirPodConnectionMonitor>.fromOpaque(clientData!).takeUnretainedValue()
+        monitor.handleAudioDeviceChange()
+    }
+    return noErr
+}
+
+internal func defaultDeviceChangeCallback(
+    objectID: AudioObjectID,
+    numAddresses: UInt32,
+    addresses: UnsafePointer<AudioObjectPropertyAddress>,
+    clientData: UnsafeMutableRawPointer?
+) -> OSStatus {
+    DispatchQueue.main.async {
+        let monitor = Unmanaged<AirPodConnectionMonitor>.fromOpaque(clientData!).takeUnretainedValue()
+        monitor.handleDefaultDeviceChange()
+    }
+    return noErr
+}
+
 /// Monitor for detecting AirPod connections
 @MainActor
 class AirPodConnectionMonitor: NSObject, ObservableObject {
@@ -29,7 +58,7 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
     ]
 
     // Bluetooth service UUIDs for AirPods
-    private let batteryServiceUUID = CBUUID(string: "180F")
+    internal let batteryServiceUUID = CBUUID(string: "180F")
 
     private override init() {
         super.init()
@@ -38,9 +67,45 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
     }
 
     deinit {
-        Task { @MainActor in
-            stopMonitoring()
+        // Clean up synchronously without MainActor
+        guard isMonitoring else { return }
+
+        // Remove audio property listeners
+        var deviceAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        var defaultDeviceAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        AudioObjectRemovePropertyListener(
+            audioObjectID,
+            &deviceAddress,
+            audioDeviceChangeCallback,
+            Unmanaged.passUnretained(self).toOpaque()
+        )
+
+        AudioObjectRemovePropertyListener(
+            audioObjectID,
+            &defaultDeviceAddress,
+            defaultDeviceChangeCallback,
+            Unmanaged.passUnretained(self).toOpaque()
+        )
+
+        // Stop Bluetooth scanning
+        if let central = centralManager {
+            central.stopScan()
+            for (_, peripheral) in connectedAirPods {
+                central.cancelPeripheralConnection(peripheral)
+            }
         }
+
+        isMonitoring = false
     }
 
     // MARK: - Audio System Monitoring
@@ -60,13 +125,7 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
         AudioObjectAddPropertyListener(
             audioObjectID,
             &deviceAddress,
-            { (objectID, numAddresses, addresses, clientData) -> OSStatus in
-                DispatchQueue.main.async {
-                    let monitor = Unmanaged<AirPodConnectionMonitor>.fromOpaque(clientData!).takeUnretainedValue()
-                    monitor.handleAudioDeviceChange()
-                }
-                return noErr
-            },
+            audioDeviceChangeCallback,
             Unmanaged.passUnretained(self).toOpaque()
         )
 
@@ -80,13 +139,7 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
         AudioObjectAddPropertyListener(
             audioObjectID,
             &defaultDeviceAddress,
-            { (objectID, numAddresses, addresses, clientData) -> OSStatus in
-                DispatchQueue.main.async {
-                    let monitor = Unmanaged<AirPodConnectionMonitor>.fromOpaque(clientData!).takeUnretainedValue()
-                    monitor.handleDefaultDeviceChange()
-                }
-                return noErr
-            },
+            defaultDeviceChangeCallback,
             Unmanaged.passUnretained(self).toOpaque()
         )
 
@@ -97,7 +150,7 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
         checkCurrentAudioDevices()
     }
 
-    private func handleAudioDeviceChange() {
+    internal func handleAudioDeviceChange() {
         let now = Date()
         guard now.timeIntervalSince(lastRouteChangeTime) > 0.5 else { return }
         lastRouteChangeTime = now
@@ -105,7 +158,7 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
         checkCurrentAudioDevices()
     }
 
-    private func handleDefaultDeviceChange() {
+    internal func handleDefaultDeviceChange() {
         checkCurrentAudioDevices()
     }
 
@@ -236,56 +289,14 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
 
     // MARK: - Public Methods
 
-    /// Stop monitoring
-    private func stopMonitoring() {
-        guard isMonitoring else { return }
-
-        // Remove audio property listeners
-        var deviceAddress = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDevices,
-            mScope: kAudioObjectPropertyScopeOutput,
-            mElement: kAudioObjectPropertyElementMain
-        )
-
-        var defaultDeviceAddress = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-
-        AudioObjectRemovePropertyListener(
-            audioObjectID,
-            &deviceAddress,
-            { (_, _, _, _) -> OSStatus in return noErr },
-            Unmanaged.passUnretained(self).toOpaque()
-        )
-
-        AudioObjectRemovePropertyListener(
-            audioObjectID,
-            &defaultDeviceAddress,
-            { (_, _, _, _) -> OSStatus in return noErr },
-            Unmanaged.passUnretained(self).toOpaque()
-        )
-
-        // Stop Bluetooth scanning
-        if let central = centralManager {
-            central.stopScan()
-            for (_, peripheral) in connectedAirPods {
-                central.cancelPeripheralConnection(peripheral)
-            }
-        }
-
-        isMonitoring = false
-    }
-
     /// Get current connected AirPods info
-    func getConnectedAirPods() -> [(name: String, battery: (left: Float?, right: Float?, case: Float?))] {
+    func getConnectedAirPods() -> [(name: String, battery: (left: Float?, right: Float?, caseBattery: Float?))] {
         guard batteryMonitor.hasBatteryData() else { return [] }
 
         return [(name: batteryMonitor.name, battery: (
             left: batteryMonitor.left >= 0 ? Float(batteryMonitor.left) / 100.0 : nil,
             right: batteryMonitor.right >= 0 ? Float(batteryMonitor.right) / 100.0 : nil,
-            case: batteryMonitor.caseBattery >= 0 ? Float(batteryMonitor.caseBattery) / 100.0 : nil
+            caseBattery: batteryMonitor.caseBattery >= 0 ? Float(batteryMonitor.caseBattery) / 100.0 : nil
         ))]
     }
 
