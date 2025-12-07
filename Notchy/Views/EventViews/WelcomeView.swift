@@ -3,6 +3,7 @@ import SwiftUI
 /// Custom view for welcome events
 struct WelcomeView: View {
     let event: WelcomeEvent
+    private let timeOfDay = TimeOfDay.current
 
     var body: some View {
         ZStack {
@@ -17,15 +18,9 @@ struct WelcomeView: View {
                 // Time-based icon with gradient
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: iconGradientColors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(timeOfDay.createLinearGradient())
                         .frame(width: 50, height: 50)
-                        .shadow(color: iconGradientColors.first!.opacity(0.4), radius: 8, x: 0, y: 2)
+                        .shadow(color: timeOfDay.primaryColor.opacity(0.4), radius: 8, x: 0, y: 2)
 
                     Image(systemName: event.icon)
                         .font(.title2)
@@ -59,65 +54,14 @@ struct WelcomeView: View {
         .edgesIgnoringSafeArea(.all)
     }
 
-    // Black background with time-based gradient accent (like CPU view pattern)
+    // Black background with time-based gradient accent
     private var backgroundGradient: some View {
         ZStack {
             // Pure black base
             Color.black
 
             // Time-based gradient from bottom fading up
-            VStack(spacing: 0) {
-                Spacer()
-
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        backgroundAccentColor.opacity(0.1),
-                        backgroundAccentColor.opacity(0.2)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 120)
-            }
-        }
-    }
-
-    // Icon gradient colors based on time of day (consistent with Default view)
-    private var iconGradientColors: [Color] {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<8:   // Early morning - orange/pink sunrise
-            return [.orange, .pink]
-        case 8..<12:  // Late morning - yellow
-            return [.yellow, .orange]
-        case 12..<17: // Afternoon - blue
-            return [.blue, .cyan]
-        case 17..<20: // Evening - purple/blue
-            return [.purple, .blue]
-        case 20..<23: // Night - deep blue
-            return [.indigo, .blue]
-        default:      // Late night - dark purple
-            return [.purple, .indigo]
-        }
-    }
-
-    // Background accent color for subtle gradient (based on time of day, consistent with Default view)
-    private var backgroundAccentColor: Color {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<8:   // Early morning - orange/pink accent
-            return .orange
-        case 8..<12:  // Late morning - yellow accent
-            return .yellow
-        case 12..<17: // Afternoon - blue accent
-            return .blue
-        case 17..<20: // Evening - purple accent
-            return .purple
-        case 20..<23: // Night - deep blue accent
-            return .indigo
-        default:      // Late night - dark purple accent
-            return .purple
+            timeOfDay.createBackgroundGradient(opacity: 0.2, height: 120)
         }
     }
 

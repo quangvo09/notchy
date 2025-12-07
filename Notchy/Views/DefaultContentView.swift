@@ -5,6 +5,7 @@ import Foundation
 struct DefaultContentView: View {
     @State private var currentTime = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private var timeOfDay: TimeOfDay { TimeOfDay(date: currentTime) }
 
     // AirPod battery monitor
     @StateObject private var batteryMonitor = AirPodsBatteryMonitor.shared
@@ -47,9 +48,9 @@ struct DefaultContentView: View {
                             .font(.title3)
                             .foregroundStyle(.white.opacity(0.5))
 
-                        Text(timeOfDay)
+                        Text(timeOfDay.shortName)
                             .font(.title3)
-                            .foregroundStyle(timeOfDayColor.opacity(0.8))
+                            .foregroundStyle(timeOfDay.primaryColor.opacity(0.8))
                     }
                 }
 
@@ -67,7 +68,7 @@ struct DefaultContentView: View {
                                 .frame(width: 20, height: 20)
                                 .background(
                                     Circle()
-                                        .fill(isToday(date) ? timeOfDayColor.opacity(0.3) : .clear)
+                                        .fill(isToday(date) ? timeOfDay.primaryColor.opacity(0.3) : .clear)
                                 )
                         }
                         .frame(maxWidth: .infinity)
@@ -135,65 +136,6 @@ struct DefaultContentView: View {
         Calendar.current.isDate(date, inSameDayAs: currentTime)
     }
 
-    // Get time of day with appropriate greeting
-    private var timeOfDay: String {
-        let hour = Calendar.current.component(.hour, from: currentTime)
-        switch hour {
-        case 5..<12:
-            return "Morning"
-        case 12..<17:
-            return "Afternoon"
-        case 17..<21:
-            return "Evening"
-        default:
-            return "Night"
-        }
-    }
-
-    // Dynamic color based on time of day (consistent with Welcome view)
-    private var timeOfDayColor: Color {
-        let hour = Calendar.current.component(.hour, from: currentTime)
-        switch hour {
-        case 5..<8:
-            // Early morning - orange/pink sunrise
-            return .orange
-        case 8..<12:
-            // Late morning - yellow
-            return .yellow
-        case 12..<17:
-            // Afternoon - blue
-            return .blue
-        case 17..<20:
-            // Evening - purple/blue
-            return .purple
-        case 20..<23:
-            // Night - deep blue
-            return .indigo
-        default:
-            // Late night - dark purple
-            return .purple
-        }
-    }
-
-    // Icon gradient colors based on time of day (consistent with Welcome view)
-    private var iconGradientColors: [Color] {
-        let hour = Calendar.current.component(.hour, from: currentTime)
-        switch hour {
-        case 5..<8:   // Early morning - orange/pink sunrise
-            return [.orange, .pink]
-        case 8..<12:  // Late morning - yellow
-            return [.yellow, .orange]
-        case 12..<17: // Afternoon - blue
-            return [.blue, .cyan]
-        case 17..<20: // Evening - purple/blue
-            return [.purple, .blue]
-        case 20..<23: // Night - deep blue
-            return [.indigo, .blue]
-        default:      // Late night - dark purple
-            return [.purple, .indigo]
-        }
-    }
-
     // Background with time-based gradient
     private var backgroundGradient: some View {
         ZStack {
@@ -201,20 +143,7 @@ struct DefaultContentView: View {
             Color.black
 
             // Gradient from bottom fading up with time-based colors
-            VStack(spacing: 0) {
-                Spacer()
-
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        timeOfDayColor.opacity(0.1),
-                        timeOfDayColor.opacity(0.2)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 120)
-            }
+            timeOfDay.createBackgroundGradient(opacity: 0.2, height: 120)
         }
     }
 }
@@ -222,31 +151,7 @@ struct DefaultContentView: View {
 /// Simplified view for displaying AirPod battery info below calendar
 struct AirPodBatteryInfoView: View {
     @ObservedObject var batteryMonitor: AirPodsBatteryMonitor
-
-    // Dynamic color based on time of day (consistent with Welcome and Default views)
-    private var timeOfDayColor: Color {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<8:
-            // Early morning - orange/pink sunrise
-            return .orange
-        case 8..<12:
-            // Late morning - yellow
-            return .yellow
-        case 12..<17:
-            // Afternoon - blue
-            return .blue
-        case 17..<20:
-            // Evening - purple/blue
-            return .purple
-        case 20..<23:
-            // Night - deep blue
-            return .indigo
-        default:
-            // Late night - dark purple
-            return .purple
-        }
-    }
+    private let timeOfDay = TimeOfDay.current
 
     var body: some View {
         HStack(spacing: 16) {
@@ -255,15 +160,9 @@ struct AirPodBatteryInfoView: View {
                 HStack(spacing: 6) {
                     ZStack {
                         Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: getTimeOfDayGradient(),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .fill(timeOfDay.createLinearGradient())
                             .frame(width: 20, height: 20)
-                            .shadow(color: timeOfDayColor.opacity(0.4), radius: 3, x: 0, y: 1)
+                            .shadow(color: timeOfDay.primaryColor.opacity(0.4), radius: 3, x: 0, y: 1)
 
                         Image(systemName: "airpodspro")
                             .font(.caption2)
@@ -293,27 +192,8 @@ struct AirPodBatteryInfoView: View {
             if batteryMonitor.isChargingLeft || batteryMonitor.isChargingRight || batteryMonitor.isChargingCase {
                 Image(systemName: "bolt.fill")
                     .font(.caption2)
-                    .foregroundStyle(timeOfDayColor.opacity(0.8))
+                    .foregroundStyle(timeOfDay.primaryColor.opacity(0.8))
             }
-        }
-    }
-
-    // Get gradient colors based on time of day
-    private func getTimeOfDayGradient() -> [Color] {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<8:   // Early morning - orange/pink sunrise
-            return [.orange, .pink]
-        case 8..<12:  // Late morning - yellow
-            return [.yellow, .orange]
-        case 12..<17: // Afternoon - blue
-            return [.blue, .cyan]
-        case 17..<20: // Evening - purple/blue
-            return [.purple, .blue]
-        case 20..<23: // Night - deep blue
-            return [.indigo, .blue]
-        default:      // Late night - dark purple
-            return [.purple, .indigo]
         }
     }
 }
