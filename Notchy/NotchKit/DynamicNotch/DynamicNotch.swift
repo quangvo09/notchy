@@ -7,6 +7,24 @@
 
 import SwiftUI
 
+// MARK: - Hover Detection
+
+/// Defines how the notch detects hover and when to expand.
+public enum HoverDetectionMode {
+    /// Expand immediately on hover (current behavior)
+    case immediate
+
+    /// Wait for a specified delay before expanding
+    case delayed(TimeInterval)
+
+    /// Use mouse velocity and hover duration to determine when to expand
+    case smartDetection(
+        hoverDelay: TimeInterval = 0.5,
+        velocityThreshold: CGFloat = 500,
+        minHoverDuration: TimeInterval = 0.3
+    )
+}
+
 // MARK: - DynamicNotch
 
 ///
@@ -63,6 +81,9 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     /// Behavior of window when mouse enters.
     public let hoverBehavior: DynamicNotchHoverBehavior
 
+    /// Hover detection mode configuration.
+    public let hoverDetectionMode: HoverDetectionMode
+
     /// Namespace for matched geometry effect. It is automatically generated if `nil` when the notch is first presented.
     @Published public internal(set) var namespace: Namespace.ID?
 
@@ -81,21 +102,30 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
 
     private var closePanelTask: Task<(), Never>? // Used to close the panel after hiding completes
 
+    // MARK: - Hover Detection Properties
+    private var hoverTask: Task<Void, Never>? // For delayed expansion
+    private var hoverStartTime: Date?
+    private var lastMousePosition: CGPoint?
+    private var lastMouseMoveTime: Date?
+
     /// Creates a new DynamicNotch with custom content and style.
     /// - Parameters:
     ///   - hoverBehavior: defines the hover behavior of the notch, which allows for different interactions such as haptic feedback, increased shadow etc.
+    ///   - hoverDetectionMode: defines how the notch detects hover and when to expand. Defaults to immediate expansion.
     ///   - style: the popover's style. If unspecified, the style will be automatically set according to the screen (notch or floating).
     ///   - expanded: a SwiftUI View to be shown in the expanded state of the notch.
     ///   - compactLeading: a SwiftUI View to be shown in the compact leading state of the notch.
     ///   - compactTrailing: a SwiftUI View to be shown in the compact trailing state of the notch.
     public init(
         hoverBehavior: DynamicNotchHoverBehavior = .all,
+        hoverDetectionMode: HoverDetectionMode = .immediate,
         style: DynamicNotchStyle = .auto,
         @ViewBuilder expanded: @escaping () -> Expanded,
         @ViewBuilder compactLeading: @escaping () -> CompactLeading = { EmptyView() },
         @ViewBuilder compactTrailing: @escaping () -> CompactTrailing = { EmptyView() }
     ) {
         self.hoverBehavior = hoverBehavior
+        self.hoverDetectionMode = hoverDetectionMode
         self.style = style
 
         self.expandedContent = expanded()
@@ -108,15 +138,18 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     /// Creates a new DynamicNotch with custom content and style. Does not support the compact appearance.
     /// - Parameters:
     ///   - hoverBehavior: defines the hover behavior of the notch, which allows for different interactions such as haptic feedback, increased shadow etc.
+    ///   - hoverDetectionMode: defines how the notch detects hover and when to expand. Defaults to immediate expansion.
     ///   - style: the popover's style. If unspecified, the style will be automatically set according to the screen (notch or floating).
     ///   - expanded: a SwiftUI View to be shown in the expanded state of the notch.
     public convenience init(
         hoverBehavior: DynamicNotchHoverBehavior = [.keepVisible],
+        hoverDetectionMode: HoverDetectionMode = .immediate,
         style: DynamicNotchStyle = .auto,
         @ViewBuilder expanded: @escaping () -> Expanded
     ) where CompactLeading == EmptyView, CompactTrailing == EmptyView {
         self.init(
             hoverBehavior: hoverBehavior,
+            hoverDetectionMode: hoverDetectionMode,
             style: style,
             expanded: expanded,
             compactLeading: { EmptyView() },
@@ -151,18 +184,114 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
             performer.perform(.alignment, performanceTime: .default)
         }
 
-        // CUSTOM: Auto expand/compact on hover
-        Task { @MainActor in
-            if hovering && state == .compact {
+        // Cancel any pending hover task
+        hoverTask?.cancel()
+
+        // Handle hover start
+        if hovering && state == .compact {
+            handleHoverStart()
+        }
+        // Handle hover end
+        else if !hovering && state == .expanded {
+            handleHoverEnd()
+        }
+    }
+
+    /// Updates the mouse position during hover for smart detection.
+    func updateMousePosition(_ position: CGPoint) {
+        guard isHovering else { return }
+
+        let currentTime = Date()
+
+        if let lastPos = lastMousePosition, let lastTime = lastMouseMoveTime {
+            let timeDelta = currentTime.timeIntervalSince(lastTime)
+
+            // Only process if enough time has passed
+            if timeDelta > 0.01 {
+                let distance = sqrt(pow(position.x - lastPos.x, 2) + pow(position.y - lastPos.y, 2))
+                let velocity = distance / timeDelta // points per second
+
+                // Store velocity sample for smart detection
+                let _ = (velocity, currentTime)
+
+                // For smart detection, check if velocity exceeds threshold
+                if case .smartDetection(_, let velocityThreshold, _) = hoverDetectionMode {
+                    if velocity > velocityThreshold {
+                        // Mouse moving too fast, cancel pending expansion
+                        hoverTask?.cancel()
+                        print("🖱️ Mouse velocity too high (\(velocity) pts/s), canceling expansion")
+                    }
+                }
+            }
+        }
+
+        lastMousePosition = position
+        lastMouseMoveTime = currentTime
+    }
+
+    // MARK: - Private Hover Detection Methods
+
+    private func handleHoverStart() {
+        hoverStartTime = Date()
+
+        switch hoverDetectionMode {
+        case .immediate:
+            // Expand immediately
+            Task { @MainActor in
                 print("🖱️ Hover detected - auto expanding...")
                 await expand()
-            } else if !hovering && state == .expanded {
-                // Delay before compacting to avoid flickering
-                try? await Task.sleep(for: .milliseconds(500))
-                if !isHovering && state == .expanded {
-                    print("🖱️ Hover ended - auto compacting...")
-                    await compact()
+            }
+
+        case .delayed(let delay):
+            // Wait for specified delay before expanding
+            hoverTask = Task {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                guard !Task.isCancelled && isHovering && state == .compact else { return }
+                await MainActor.run {
+                    print("🖱️ Hover delay completed - expanding...")
+                    Task {
+                        await expand()
+                    }
                 }
+            }
+
+        case .smartDetection(let hoverDelay, let velocityThreshold, let minHoverDuration):
+            // Track hover and only expand if conditions are met
+            hoverTask = Task {
+                // First wait for minimum hover duration
+                try? await Task.sleep(nanoseconds: UInt64(minHoverDuration * 1_000_000_000))
+
+                guard !Task.isCancelled && isHovering && state == .compact else { return }
+
+                // Then wait additional time if needed to meet hoverDelay
+                let additionalDelay = max(0, hoverDelay - minHoverDuration)
+                if additionalDelay > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(additionalDelay * 1_000_000_000))
+                }
+
+                guard !Task.isCancelled && isHovering && state == .compact else { return }
+
+                await MainActor.run {
+                    print("🖱️ Smart detection passed - expanding...")
+                    Task {
+                        await expand()
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleHoverEnd() {
+        hoverStartTime = nil
+        lastMousePosition = nil
+        lastMouseMoveTime = nil
+
+        Task { @MainActor in
+            // Delay before compacting to avoid flickering
+            try? await Task.sleep(for: .milliseconds(500))
+            if !isHovering && state == .expanded {
+                print("🖱️ Hover ended - auto compacting...")
+                await compact()
             }
         }
     }

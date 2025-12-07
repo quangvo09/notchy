@@ -97,7 +97,12 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         .padding(.horizontal, topCornerRadius)
         .fixedSize()
         .frame(minWidth: minWidth, minHeight: dynamicNotch.notchSize.height)
-        .onHover(perform: dynamicNotch.updateHoverState)
+        .background {
+            MouseTrackingView(
+                onHoverChange: dynamicNotch.updateHoverState,
+                onMouseMove: dynamicNotch.updateMousePosition
+            )
+        }
     }
 
     func compactContent() -> some View {
@@ -150,5 +155,54 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         .safeAreaInset(edge: .leading, spacing: 0) { Color.clear.frame(width: 0) }
         .safeAreaInset(edge: .trailing, spacing: 0) { Color.clear.frame(width: 0) }
         .frame(minWidth: dynamicNotch.notchSize.width)
+    }
+}
+
+// MARK: - Mouse Tracking View
+
+struct MouseTrackingView: NSViewRepresentable {
+    let onHoverChange: (Bool) -> Void
+    let onMouseMove: (CGPoint) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = MouseTrackingNSView()
+        view.onHoverChange = onHoverChange
+        view.onMouseMove = onMouseMove
+
+        let trackingArea = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
+            owner: view,
+            userInfo: nil
+        )
+
+        view.addTrackingArea(trackingArea)
+
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    class MouseTrackingNSView: NSView {
+        var onHoverChange: ((Bool) -> Void)?
+        var onMouseMove: ((CGPoint) -> Void)?
+        private var isHovering = false
+
+        override func mouseEntered(with event: NSEvent) {
+            isHovering = true
+            onHoverChange?(true)
+        }
+
+        override func mouseExited(with event: NSEvent) {
+            isHovering = false
+            onHoverChange?(false)
+        }
+
+        override func mouseMoved(with event: NSEvent) {
+            guard isHovering else { return }
+
+            let location = event.locationInWindow
+            onMouseMove?(location)
+        }
     }
 }
