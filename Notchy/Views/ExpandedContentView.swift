@@ -33,8 +33,10 @@ struct ExpandedContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea(.all)
 
-            // Floating dismiss button (only show for events)
-            if case .event = orchestrator.mode {
+            // Floating dismiss button (only show for events that don't auto-dismiss)
+            if case .event = orchestrator.mode,
+               let event = orchestrator.getCurrentEvent(),
+               !event.autoDismiss {
                 dismissButton
                     .padding(8)
                     .transition(.asymmetric(
