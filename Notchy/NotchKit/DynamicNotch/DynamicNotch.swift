@@ -211,15 +211,11 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
                 let distance = sqrt(pow(position.x - lastPos.x, 2) + pow(position.y - lastPos.y, 2))
                 let velocity = distance / timeDelta // points per second
 
-                // Store velocity sample for smart detection
-                let _ = (velocity, currentTime)
-
                 // For smart detection, check if velocity exceeds threshold
                 if case .smartDetection(_, let velocityThreshold, _) = hoverDetectionMode {
                     if velocity > velocityThreshold {
                         // Mouse moving too fast, cancel pending expansion
                         hoverTask?.cancel()
-                        print("🖱️ Mouse velocity too high (\(velocity) pts/s), canceling expansion")
                     }
                 }
             }
@@ -238,7 +234,6 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
         case .immediate:
             // Expand immediately
             Task { @MainActor in
-                print("🖱️ Hover detected - auto expanding...")
                 await expand()
             }
 
@@ -247,15 +242,14 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
             hoverTask = Task {
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 guard !Task.isCancelled && isHovering && state == .compact else { return }
-                await MainActor.run {
-                    print("🖱️ Hover delay completed - expanding...")
+                _ = await MainActor.run {
                     Task {
                         await expand()
                     }
                 }
             }
 
-        case .smartDetection(let hoverDelay, let velocityThreshold, let minHoverDuration):
+        case .smartDetection(let hoverDelay, _, let minHoverDuration):
             // Track hover and only expand if conditions are met
             hoverTask = Task {
                 // First wait for minimum hover duration
@@ -271,8 +265,7 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
 
                 guard !Task.isCancelled && isHovering && state == .compact else { return }
 
-                await MainActor.run {
-                    print("🖱️ Smart detection passed - expanding...")
+                _ = await MainActor.run {
                     Task {
                         await expand()
                     }
@@ -290,7 +283,6 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
             // Delay before compacting to avoid flickering
             try? await Task.sleep(for: .milliseconds(500))
             if !isHovering && state == .expanded {
-                print("🖱️ Hover ended - auto compacting...")
                 await compact()
             }
         }

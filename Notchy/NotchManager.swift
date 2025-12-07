@@ -19,9 +19,9 @@ class NotchManager: ObservableObject {
         dynamicNotch = DynamicNotch(
             hoverBehavior: .all,  // Automatically handles hover-to-expand
             hoverDetectionMode: .smartDetection(
-                hoverDelay: 0.1,        // Wait 500ms before expanding
+                hoverDelay: 0.1,        // Total hover time needed: 100ms
                 velocityThreshold: 500, // Ignore if mouse moves faster than 500 pts/s
-                minHoverDuration: 0.2   // Must hover for at least 300ms
+                minHoverDuration: 0.2   // Must hover for at least 200ms
             ),
             expanded: {
                 AnyView(
