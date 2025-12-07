@@ -1,6 +1,8 @@
-.build# Xcode user data
+.build
+.claude
+# Xcode user data
 **/xcuserdata/
 *.xcuserstate
 # Xcode build
-.build/
 /derived-data/
+**/.DS_Store
