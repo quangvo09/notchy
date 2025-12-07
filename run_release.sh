@@ -1,23 +1,6 @@
 #!/bin/bash
 
-# Script to kill current Notchy app, build release standalone app, and run it
-
-echo "🔍 Looking for running Notchy processes..."
-
-# Kill any running Notchy processes
-if pgrep -f "Notchy" > /dev/null; then
-    echo "⚡ Found running Notchy processes. Terminating..."
-    pkill -f "Notchy"
-    sleep 2
-    # Force kill if still running
-    if pgrep -f "Notchy" > /dev/null; then
-        echo "💥 Force killing Notchy processes..."
-        pkill -9 -f "Notchy"
-        sleep 1
-    fi
-else
-    echo "✅ No Notchy processes found running"
-fi
+# Script to build release standalone app bundle
 
 echo ""
 echo "🏗️ Building Notchy in release mode..."
@@ -48,7 +31,7 @@ rm -rf ./Notchy.app
 mkdir -p ./Notchy.app/Contents/MacOS
 mkdir -p ./Notchy.app/Contents/Resources
 
-# Create Info.plist
+# Create Info.plist with proper permissions
 cat > ./Notchy.app/Contents/Info.plist << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -60,6 +43,8 @@ cat > ./Notchy.app/Contents/Info.plist << 'EOF'
     <string>com.notchyapp.notchy</string>
     <key>CFBundleName</key>
     <string>Notchy</string>
+    <key>CFBundleDisplayName</key>
+    <string>Notchy</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>CFBundleShortVersionString</key>
@@ -68,6 +53,16 @@ cat > ./Notchy.app/Contents/Info.plist << 'EOF'
     <string>APPL</string>
     <key>LSUIElement</key>
     <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Notchy needs Bluetooth access to monitor AirPods connection and battery status.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>Notchy uses Bluetooth to display AirPods battery information in the notch.</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
 </dict>
 </plist>
 EOF

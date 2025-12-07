@@ -30,7 +30,7 @@ struct AirPodDisconnectAlertView: View {
                         .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 2)
 
                     VStack {
-                        Image(systemName: "airpods")
+                        Image(systemName: "airpodspro")
                             .font(.title2)
                             .foregroundStyle(.white)
 

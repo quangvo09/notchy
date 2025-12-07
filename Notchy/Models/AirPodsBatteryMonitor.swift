@@ -1,8 +1,9 @@
 import Foundation
 import SwiftUI
+import Combine
 import IOBluetooth
 
-/// Monitor for AirPods battery levels using Bluetooth framework
+/// Monitor for AirPods battery levels using Apple's private API
 final class AirPodsBatteryMonitor: ObservableObject {
     @Published var left: Int = -1
     @Published var right: Int = -1
@@ -14,6 +15,7 @@ final class AirPodsBatteryMonitor: ObservableObject {
 
     static let shared = AirPodsBatteryMonitor()
 
+    private var cancellable: AnyCancellable?
     private var observer: Any?
     private var lastUpdate: Date = Date.distantPast
     private let updateInterval: TimeInterval = 1.0 // Throttle updates to avoid spam
@@ -23,10 +25,29 @@ final class AirPodsBatteryMonitor: ObservableObject {
     }
 
     private func setupBatteryMonitoring() {
-        // Try to use IOBluetooth framework for device discovery
-        print("🔋 AirPodsBatteryMonitor: Setting up Bluetooth monitoring")
+        print("🔋 AirPodsBatteryMonitor: Setting up Bluetooth monitoring with private API")
 
-        // Start observing all Bluetooth devices
+        // This is the private API that Apple uses for AirPods battery widget in menu bar
+        guard NSClassFromString("BTSDevice") != nil else {
+            print("⚠️ Could not access BTSDevice private API, falling back to IOBluetooth")
+            setupFallbackMonitoring()
+            return
+        }
+
+        // Listen to all Bluetooth changes (battery, connection, charging...)
+        cancellable = NotificationCenter.default
+            .publisher(for: NSNotification.Name("BTSDeviceDidUpdateNotification"))
+            .sink { [weak self] _ in
+                self?.updateRealBatteryData()
+            }
+
+        // Initial read
+        updateRealBatteryData()
+        print("🔋 AirPodsBatteryMonitor: Real battery monitoring active")
+    }
+
+    private func setupFallbackMonitoring() {
+        // Fallback to IOBluetooth if private API is not available
         observer = NotificationCenter.default.addObserver(
             forName: NSNotification.Name("IOBluetoothDeviceNotificationString_DeviceConnected"),
             object: nil,
@@ -35,57 +56,57 @@ final class AirPodsBatteryMonitor: ObservableObject {
             self?.updateAirPodsBattery()
         }
 
-        // Also observe disconnections
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("IOBluetoothDeviceNotificationString_DeviceDisconnected"),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.reset()
-        }
-
-        // Initial read
         updateAirPodsBattery()
-        print("🔋 AirPodsBatteryMonitor: Battery monitoring active")
     }
 
-    private func updateAirPodsBattery() {
+    private func updateRealBatteryData() {
         // Throttle updates
         let now = Date()
         guard now.timeIntervalSince(lastUpdate) >= updateInterval else { return }
         lastUpdate = now
 
-        // Try to get paired Bluetooth devices
-        let pairedDevices = IOBluetoothDevice.pairedDevices()
-        print("🔋 AirPodsBatteryMonitor: Found \(pairedDevices?.count ?? 0) paired Bluetooth devices")
-
-        guard let devices = pairedDevices as? [IOBluetoothDevice] else {
-            print("🔋 AirPodsBatteryMonitor: Could not get paired devices")
+        guard let devices = (NSClassFromString("BTSDevice")?
+            .value(forKey: "allDevices") as? NSArray) else {
+            print("🔋 AirPodsBatteryMonitor: Could not get BTS devices")
             return
         }
 
-        for device in devices {
-            let deviceName = device.name ?? ""
-            guard deviceName.localizedCaseInsensitiveContains("AirPods") else { continue }
-
-            print("🔋 AirPodsBatteryMonitor: Found AirPod device: \(deviceName)")
+        for case let device as NSObject in devices {
+            guard let deviceName = device.value(forKey: "name") as? String,
+                  deviceName.localizedCaseInsensitiveContains("AirPods") else { continue }
 
             self.name = deviceName
 
-            // Get battery information if available
-            // Note: IOBluetooth might not directly provide battery levels
-            // We'll need to use Apple's private APIs or workaround
+            left            = (device.value(forKey: "batteryPercentLeft")   as? Int)  ?? -1
+            right           = (device.value(forKey: "batteryPercentRight")  as? Int)  ?? -1
+            caseBattery     = (device.value(forKey: "batteryPercentCase")   as? Int)  ?? -1
 
-            // For now, set test values when we detect AirPods
-            // This proves the detection is working
-            left = 85
-            right = 78
-            caseBattery = 45
-            isChargingCase = false  // IOBluetooth doesn't provide charging status directly
+            isChargingLeft  = (device.value(forKey: "isChargingLeft")   as? Bool) ?? false
+            isChargingRight = (device.value(forKey: "isChargingRight")  as? Bool) ?? false
+            isChargingCase  = (device.value(forKey: "isChargingCase")   as? Bool) ?? false
 
-            print("🔋 \(deviceName) - L:\(left)% R:\(right)% Case:\(caseBattery)% Charging:\(isChargingCase)")
+            print("🔋 \(deviceName) - L:\(left)% R:\(right)% Case:\(caseBattery)%")
+            print("   Charging: L=\(isChargingLeft) R=\(isChargingRight) Case=\(isChargingCase)")
+
+            // Exit loop when AirPods found (only 1 pair)
             break
         }
+    }
+
+    private func updateAirPodsBattery() {
+        // Fallback method using IOBluetooth
+        // This should not be reached if the private API works
+        print("🔋 AirPodsBatteryMonitor (fallback): Using fallback - private API not available")
+
+        // Reset to -1 to show no data when fallback is used
+        left = -1
+        right = -1
+        caseBattery = -1
+        isChargingLeft = false
+        isChargingRight = false
+        isChargingCase = false
+
+        // Don't set dummy values, just leave as -1 (no data)
     }
 
     /// Get average battery level for display
@@ -132,5 +153,6 @@ final class AirPodsBatteryMonitor: ObservableObject {
         if let obs = observer {
             NotificationCenter.default.removeObserver(obs)
         }
+        cancellable?.cancel()
     }
 }
