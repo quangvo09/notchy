@@ -9,10 +9,12 @@ import IOKit.audio
 class AirPodConnectionMonitor: NSObject, ObservableObject {
     static let shared = AirPodConnectionMonitor()
 
-    // CoreBluetooth manager
+    // CoreBluetooth manager (kept as fallback)
     private var centralManager: CBCentralManager?
     private var connectedAirPods: [String: CBPeripheral] = [:]
-    private var airPodBatteryLevels: [String: (left: Float?, right: Float?, case: Float?)] = [:]
+
+    // New battery monitor for accurate readings
+    private let batteryMonitor = AirPodsBatteryMonitor.shared
 
     // Audio system monitoring
     private var audioObjectID: AudioObjectID = 0
@@ -148,16 +150,9 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
         for deviceName in connectedDevices {
             if !currentlyConnected.contains(deviceName) {
                 print("❌ AirPod disconnected: \(deviceName)")
-                let batteryInfo = airPodBatteryLevels[deviceName]
-                postAirPodDisconnectedEvent(
-                    deviceName: deviceName,
-                    leftBattery: batteryInfo?.left,
-                    rightBattery: batteryInfo?.right,
-                    caseBattery: batteryInfo?.case
-                )
+                postAirPodDisconnectedEvent(deviceName: deviceName)
 
                 connectedDevices.remove(deviceName)
-                airPodBatteryLevels.removeValue(forKey: deviceName)
 
                 // Disconnect from Bluetooth peripheral if connected
                 if let peripheral = connectedAirPods[deviceName] {
@@ -203,14 +198,15 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
     // MARK: - Event Posting
 
     private func postAirPodConnectedEvent(deviceName: String) {
-        let batteryInfo = airPodBatteryLevels[deviceName]
+        // Get battery levels from the new battery monitor
+        let batteryLevel = batteryMonitor.getAverageBattery() ?? 1.0 // Default to 100% if unknown
+        let caseBatteryLevel = batteryMonitor.getCaseBattery()
 
-        // Use existing battery info or provide a default
-        let batteryLevel = batteryInfo?.left ?? batteryInfo?.right ?? 1.0 // Default to 100% if unknown
-        let caseBatteryLevel = batteryInfo?.case ?? (batteryInfo?.left != nil ? 0.85 : nil) // Default to 85% case if we have AirPod battery
+        // Use the device name from battery monitor if available, otherwise use the detected name
+        let displayName = batteryMonitor.hasBatteryData() ? batteryMonitor.name : deviceName
 
         let event = AirPodConnectAlertEvent(
-            deviceName: deviceName,
+            deviceName: displayName,
             batteryLevel: batteryLevel,
             caseBatteryLevel: caseBatteryLevel
         )
@@ -218,27 +214,24 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
         EventMonitor.shared.postEvent(event)
     }
 
-    private func postAirPodDisconnectedEvent(
-        deviceName: String,
-        leftBattery: Float?,
-        rightBattery: Float?,
-        caseBattery: Float?
-    ) {
-        // Use average battery for display
-        let averageBattery = {
-            guard let left = leftBattery, let right = rightBattery else {
-                return leftBattery ?? rightBattery
-            }
-            return (left + right) / 2
-        }()
+    private func postAirPodDisconnectedEvent(deviceName: String) {
+        // Get battery levels from the battery monitor for last known values
+        let batteryLevel = batteryMonitor.getAverageBattery()
+        let caseBatteryLevel = batteryMonitor.getCaseBattery()
+
+        // Use the device name from battery monitor if available, otherwise use the detected name
+        let displayName = batteryMonitor.hasBatteryData() ? batteryMonitor.name : deviceName
 
         let event = AirPodDisconnectAlertEvent(
-            deviceName: deviceName,
-            batteryLevel: averageBattery,
-            caseBatteryLevel: caseBattery
+            deviceName: displayName,
+            batteryLevel: batteryLevel,
+            caseBatteryLevel: caseBatteryLevel
         )
 
         EventMonitor.shared.postEvent(event)
+
+        // Reset battery monitor when AirPods are disconnected
+        batteryMonitor.reset()
     }
 
     // MARK: - Public Methods
@@ -287,12 +280,13 @@ class AirPodConnectionMonitor: NSObject, ObservableObject {
 
     /// Get current connected AirPods info
     func getConnectedAirPods() -> [(name: String, battery: (left: Float?, right: Float?, case: Float?))] {
-        return connectedDevices.compactMap { name in
-            if let battery = airPodBatteryLevels[name] {
-                return (name: name, battery: battery)
-            }
-            return nil
-        }
+        guard batteryMonitor.hasBatteryData() else { return [] }
+
+        return [(name: batteryMonitor.name, battery: (
+            left: batteryMonitor.left >= 0 ? Float(batteryMonitor.left) / 100.0 : nil,
+            right: batteryMonitor.right >= 0 ? Float(batteryMonitor.right) / 100.0 : nil,
+            case: batteryMonitor.caseBattery >= 0 ? Float(batteryMonitor.caseBattery) / 100.0 : nil
+        ))]
     }
 
     // MARK: - Simulation methods (kept for testing)
@@ -427,26 +421,8 @@ extension AirPodConnectionMonitor: CBPeripheralDelegate {
             DispatchQueue.main.async {
                 let deviceName = peripheral.name ?? "Unknown"
 
-                // Store battery level
-                if self.airPodBatteryLevels[deviceName] == nil {
-                    self.airPodBatteryLevels[deviceName] = (nil, nil, nil)
-                }
-
-                // This is simplified - real implementation would parse Apple's custom battery service format
-                // which includes left, right, and case battery in a single packet
-                let uuidString = characteristic.uuid.uuidString.lowercased()
-                if uuidString.contains("left") {
-                    self.airPodBatteryLevels[deviceName]?.left = batteryLevel
-                } else if uuidString.contains("right") {
-                    self.airPodBatteryLevels[deviceName]?.right = batteryLevel
-                } else if uuidString.contains("case") {
-                    self.airPodBatteryLevels[deviceName]?.case = batteryLevel
-                } else {
-                    // Default: assume this is the main battery
-                    self.airPodBatteryLevels[deviceName]?.left = batteryLevel
-                }
-
-                print("🔋 \(deviceName) battery updated: \(Int(batteryLevel * 100))%")
+                // The new AirPodsBatteryMonitor handles this automatically
+                print("🔋 Bluetooth peripheral battery read (legacy)")
             }
         }
     }

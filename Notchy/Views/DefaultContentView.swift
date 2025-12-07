@@ -6,6 +6,9 @@ struct DefaultContentView: View {
     @State private var currentTime = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
+    // AirPod battery monitor
+    @StateObject private var batteryMonitor = AirPodsBatteryMonitor.shared
+
     // Get current week dates
     private var weekDates: [Date] {
         let calendar = Calendar.current
@@ -74,6 +77,11 @@ struct DefaultContentView: View {
                 .padding(.vertical, 12)
                 .background(.white.opacity(0.05))
                 .cornerRadius(12)
+ 
+                // AirPod battery info below calendar (only show if connected)
+                if batteryMonitor.hasBatteryData() {
+                    AirPodBatteryInfoView(batteryMonitor: batteryMonitor)
+                }
             }
             .padding(.horizontal, 24)
             .padding(.top, 20)
@@ -192,9 +200,66 @@ struct DefaultContentView: View {
     }
 }
 
+/// Simplified view for displaying AirPod battery info below calendar
+struct AirPodBatteryInfoView: View {
+    @ObservedObject var batteryMonitor: AirPodsBatteryMonitor
+
+    var body: some View {
+        HStack(spacing: 16) {
+            // AirPods average battery
+            if let avgBattery = batteryMonitor.getAverageBattery() {
+                HStack(spacing: 6) {
+                    Image(systemName: "airpodspro")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+
+                    Text("\(Int(avgBattery * 100))%")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+            }
+
+            // Case battery
+            if batteryMonitor.caseBattery >= 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "airpods.gen3.chargingcase.wireless")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+
+                    Text("\(batteryMonitor.caseBattery)%")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+            }
+
+            // Charging indicator
+            if batteryMonitor.isChargingLeft || batteryMonitor.isChargingRight || batteryMonitor.isChargingCase {
+                Image(systemName: "bolt.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.yellow)
+            }
+        }
+    }
+}
+
 #Preview {
-    DefaultContentView()
-        .frame(width: 500, height: 150)
-        .background(.ultraThickMaterial)
-        .cornerRadius(20)
+    VStack(spacing: 20) {
+        DefaultContentView()
+            .frame(width: 500, height: 150)
+            .background(.ultraThickMaterial)
+            .cornerRadius(20)
+
+        // Preview with connected AirPods
+        AirPodBatteryInfoView(batteryMonitor: {
+            let monitor = AirPodsBatteryMonitor.shared
+            monitor.left = 85
+            monitor.right = 78
+            monitor.caseBattery = 45
+            monitor.name = "AirPods Pro"
+            monitor.isChargingCase = true
+            return monitor
+        }())
+        .frame(width: 300)
+        .padding()
+    }
 }

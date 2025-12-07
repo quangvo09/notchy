@@ -29,28 +29,9 @@ struct AirPodConnectAlertView: View {
                         .frame(width: 50, height: 50)
                         .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 2)
 
-                    Image(systemName: "airpods")
+                    Image(systemName: "airpodspro")
                         .font(.title2)
                         .foregroundStyle(.white)
-                        .overlay(
-                            // Battery level indicator
-                            VStack {
-                                Spacer()
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: batteryIcon(for: batteryLevel))
-                                        .font(.caption2)
-                                        .foregroundStyle(.white)
-                                        .padding(2)
-                                        .background(
-                                            Circle()
-                                                .fill(batteryLevel < 0.3 ? .red : .green)
-                                        )
-                                }
-                            }
-                            .frame(width: 24, height: 24)
-                            .offset(y: -8)
-                        )
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
