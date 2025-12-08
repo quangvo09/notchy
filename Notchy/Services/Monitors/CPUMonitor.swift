@@ -59,15 +59,12 @@ class CPUMonitor {
         // Add to history
         addToHistory(usage: usage, timestamp: now)
 
-        print("🔥 CPUMonitor: Current usage: \(usage)% (threshold: \(threshold)%)")
-
         // Check if we should trigger an alert using smart detection
         if shouldTriggerAlert(usage: usage, at: now) {
             // Check cooldown to avoid spam
             if let lastAlert = lastAlertTime {
                 let timeSinceLastAlert = now.timeIntervalSince(lastAlert)
                 if timeSinceLastAlert < alertCooldown {
-                    print("🔥 CPUMonitor: CPU high (\(Int(usage))%) but alert on cooldown (\(timeSinceLastAlert)s)")
                     return
                 }
             }
@@ -78,9 +75,6 @@ class CPUMonitor {
             EventMonitor.shared.postEvent(
                 CPUAlertEvent(cpuUsage: usage)
             )
-        } else if usage > threshold {
-            // CPU is high but hasn't met concurrent requirements yet
-            print("🔥 CPUMonitor: CPU high (\(Int(usage))%) - monitoring for sustained usage")
         }
     }
 
@@ -119,7 +113,6 @@ class CPUMonitor {
         // Calculate duration
         if let start = startTime {
             let duration = timestamp.timeIntervalSince(start)
-            print("🔥 CPUMonitor: High CPU for \(duration)s (required: \(minConcurrentTime)s), readings: \(highReadings.count)")
             return duration >= minConcurrentTime
         }
 
