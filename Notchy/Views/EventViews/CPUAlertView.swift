@@ -13,60 +13,66 @@ struct CPUAlertView: View {
                 .edgesIgnoringSafeArea(.all)
 
             // Content layer
-            HStack(spacing: 16) {
-                // Animated flame icon
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.red.opacity(0.9), .orange.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+            VStack(spacing: 0) {
+                // Content positioned at the top
+                HStack(spacing: 16) {
+                    // Animated flame icon
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.red.opacity(0.9), .orange.opacity(0.8)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .frame(width: 50, height: 50)
-                        .shadow(color: .red.opacity(0.3), radius: 8, x: 0, y: 2)
+                            .frame(width: 50, height: 50)
+                            .shadow(color: .red.opacity(0.3), radius: 8, x: 0, y: 2)
 
-                    Image(systemName: "flame.fill")
-                        .font(.title2)
-                        .foregroundStyle(.white)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("High CPU Usage")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-
-                    Text("\(Int(usage))% - System may be slow")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.75))
-                }
-
-                Spacer()
-
-                // Activity Monitor button
-                Button {
-                    openActivityMonitor()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chart.bar.fill")
-                        Text("Details")
+                        Image(systemName: "flame.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white)
                     }
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(.white.opacity(0.15))
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
-                    )
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("High CPU Usage")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+
+                        Text("\(Int(usage))% - System may be slow")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.75))
+                    }
+
+                    Spacer()
+
+                    // Activity Monitor button
+                    Button {
+                        openActivityMonitor()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chart.bar.fill")
+                            Text("Details")
+                        }
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(.white.opacity(0.15))
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 15)
+                .padding(.top, 30)
+
+                // Remove extra space at bottom
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 15)
-            .padding(.top, 15)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .edgesIgnoringSafeArea(.all)

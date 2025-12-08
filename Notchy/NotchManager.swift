@@ -19,9 +19,9 @@ class NotchManager: ObservableObject {
         dynamicNotch = DynamicNotch(
             hoverBehavior: .all,  // Automatically handles hover-to-expand
             hoverDetectionMode: .smartDetection(
-                hoverDelay: 0.1,        // Total hover time needed: 100ms
+                hoverDelay: 0.3,        // Total hover time needed: 300ms
                 velocityThreshold: 500, // Ignore if mouse moves faster than 500 pts/s
-                minHoverDuration: 0.2   // Must hover for at least 200ms
+                minHoverDuration: 0.3   // Must hover for at least 300ms
             ),
             expanded: {
                 AnyView(
@@ -68,7 +68,8 @@ class NotchManager: ObservableObject {
         }
 
         // Start CPU monitoring
-        cpuMonitor = CPUMonitor(threshold: 80.0, checkInterval: 30.0)
+        // CPU must stay above 80% for at least 60 seconds before triggering alert
+        cpuMonitor = CPUMonitor(threshold: 80.0, checkInterval: 30.0, minConcurrentTime: 60.0)
         cpuMonitor?.startMonitoring()
 
         // Check for welcome message
