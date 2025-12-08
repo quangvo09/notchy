@@ -66,7 +66,7 @@ struct CPUAlertView: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 15)
-            .padding(.top, 15)
+            .padding(.top, 30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .edgesIgnoringSafeArea(.all)

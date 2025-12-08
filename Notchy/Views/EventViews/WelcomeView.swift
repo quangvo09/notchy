@@ -48,7 +48,7 @@ struct WelcomeView: View {
                     .monospacedDigit()
             }
             .padding(.horizontal, 15)
-            .padding(.top, 15)
+            .padding(.top, 30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .edgesIgnoringSafeArea(.all)
@@ -61,7 +61,7 @@ struct WelcomeView: View {
             Color.black
 
             // Time-based gradient from bottom fading up
-            timeOfDay.createBackgroundGradient(opacity: 0.2, height: 120)
+            timeOfDay.createBackgroundGradient(opacity: 0.2, height: 100)
         }
     }
 
