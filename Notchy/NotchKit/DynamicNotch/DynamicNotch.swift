@@ -179,7 +179,8 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
 
         isHovering = hovering
 
-        if hoverBehavior.contains(.hapticFeedback) {
+        // Only trigger haptic feedback when entering hover state, not continuously
+        if hoverBehavior.contains(.hapticFeedback) && hovering {
             let performer = NSHapticFeedbackManager.defaultPerformer
             performer.perform(.alignment, performanceTime: .default)
         }
